@@ -19,15 +19,19 @@ along with BGSLibrary.  If not, see <http://www.gnu.org/licenses/>.
 FrameDifferenceBGS::FrameDifferenceBGS() : firstTime(true), enableThreshold(true), threshold(15), showOutput(true)
 {
   std::cout << "FrameDifferenceBGS()" << std::endl;
+  myfile.open("fg_intensity.txt");
 }
 
 FrameDifferenceBGS::~FrameDifferenceBGS()
 {
   std::cout << "~FrameDifferenceBGS()" << std::endl;
+  myfile.close();
 }
 
 void FrameDifferenceBGS::process(const cv::Mat &img_input, cv::Mat &img_output, cv::Mat &img_bgmodel)
 {
+  
+
   if(img_input.empty())
     return;
 
@@ -49,7 +53,49 @@ void FrameDifferenceBGS::process(const cv::Mat &img_input, cv::Mat &img_output, 
 
   if(enableThreshold)
     cv::threshold(img_foreground, img_foreground, threshold, 255, cv::THRESH_BINARY);
+  // TODO 
+  float fg_intensity = 0.0;
 
+  for(int j=0;j<img_foreground.rows;j++) 
+    {
+    for (int i=0;i<img_foreground.cols;i++)
+      {
+        fg_intensity += img_foreground.at<uchar>(i,j);
+      }
+    }
+  std::ostringstream ss;
+  int fontFace = 1;
+  double fontScale = 1;
+  int thickness = 2;  
+  cv::Point textOrg(10, 130);
+  ss << fg_intensity;
+  std::string text (ss.str());
+  std::string text_intrusion = " Possible Intrusion attempt";
+  // It is a very ugly way of doing things because I am creating a socket for every frame
+  try
+    {
+      // Create the client socket
+      ClientSocket client_socket ( "localhost", 25001 ); //Server is listening on 25001
+      try
+      {
+        client_socket << text_intrusion;
+      }
+      catch( SocketException& ) {}
+    }
+    
+  catch ( SocketException& e )
+    {
+      std::cout << "Exception was caught:" << e.description() << "\n";
+    }
+  
+  myfile << ss.str() << std::endl;
+  if(fg_intensity - 1000000 > 0)
+    {
+    ss << text.append(text_intrusion); 
+    }
+  cv::putText(img_foreground, text, textOrg, fontFace, fontScale, cv::Scalar::all(255), thickness, 8);
+  
+  // TODO
   if(showOutput)
     cv::imshow("Frame Difference", img_foreground);
 

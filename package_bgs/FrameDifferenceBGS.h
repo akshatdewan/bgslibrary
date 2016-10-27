@@ -17,11 +17,16 @@ along with BGSLibrary.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <opencv2/opencv.hpp>
 
 
 #include "IBGS.h"
-
+// TODO
+#include "ClientSocket.h"
+#include "SocketException.h"
+// TODO
 class FrameDifferenceBGS : public IBGS
 {
 private:
@@ -31,6 +36,9 @@ private:
   bool enableThreshold;
   int threshold;
   bool showOutput;
+  // TODO
+  std::ofstream myfile;
+  // TODO
 
 public:
   FrameDifferenceBGS();

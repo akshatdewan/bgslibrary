@@ -131,7 +131,8 @@ namespace bgslibrary
     if (useVideo)  setUpVideo();
     if (!capture)  std::cerr << "Capture error..." << std::endl;
 
-    int input_fps = cvGetCaptureProperty(capture, CV_CAP_PROP_FPS);
+    //int input_fps = cvGetCaptureProperty(capture, CV_CAP_PROP_FPS);
+    int input_fps = 30;
     std::cout << "input->fps:" << input_fps << std::endl;
 
     IplImage* frame1 = cvQueryFrame(capture);
