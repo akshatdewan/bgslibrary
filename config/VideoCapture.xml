@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <opencv_storage>
 <stopAt>0</stopAt>
-<input_resize_percent>100</input_resize_percent>
+<input_resize_percent>50</input_resize_percent>
 <enableFlip>0</enableFlip>
 <use_roi>0</use_roi>
 <roi_defined>0</roi_defined>
