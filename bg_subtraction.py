@@ -8,6 +8,10 @@ import sys
 import subprocess
 import shlex
 import time
+
+from os import listdir
+from os.path import isfile, join
+
 #import afsadf
 
 class mysocket:
@@ -74,15 +78,18 @@ count = 5
 
 # ~/bin/ffmpeg -i "rtmps://stream-ire-charlie.dropcam.com/nexus/ce2d2428c4fc4aa5abd9935c323665b5" -r 1 images/capImage%01d.jpg
 
-print count
 try:
     #cap=cv2.VideoCapture("nest.avi")
     while(True):
         time.sleep(1)
         count+=1
-        print count
-        # Read the pictures
-        frame = cv2.imread("images/capImage"+str(count)+".jpg")
+        # Read the pictures/ Read the latest (minus 1) picture in the directory
+        mypath = "/home/smavnet/Akshat/bgslibrary2/images/"
+        onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+        latest = max([int(f.split('capImage')[1].split('.')[0]) for f in onlyfiles])
+        print latest - 1
+        #frame = cv2.imread("images/capImage"+str(count)+".jpg")
+        frame = cv2.imread("images/capImage"+str(latest-1)+".jpg")
         # Capture the stream frame by frame
         #ret, frame = cap.read()
         # Our operations on the frame come here
