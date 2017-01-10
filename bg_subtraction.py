@@ -1,4 +1,5 @@
 # Implement bg subtraction along the lines of what is being performed in bgslibrary c++ application
+
 import numpy as np
 import cv2
 import copy
@@ -12,40 +13,44 @@ import time
 from os import listdir
 from os.path import isfile, join
 
-#import afsadf
+from __future__ import print_function
+from imutils.object_detection import non_max_suppression
+from imutils import paths
+import argparse
+import imutils
 
-class mysocket:
-    """ demonstration class only
-      - coded for clarity, not efficiency"""
-    
-    def __init__(self, sock=None):
-        if sock is None:
-            self.sock = socket.socket(
-                socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.sock = sock
-
-    def connect(self, host, port):
-        self.sock.connect((host, port))
-
-    def mysend(self, msg):
-        totalsent = 0
-        while totalsent < MSGLEN:
-            sent = self.sock.send(msg[totalsent:])
-            if sent == 0:
-                raise RuntimeError("socket connection broken")
-            totalsent = totalsent + sent
-
-    def myreceive(self):
-        chunks = []
-        bytes_recd = 0
-        while bytes_recd < MSGLEN:
-            chunk = self.sock.recv(min(MSGLEN - bytes_recd, 2048))
-            if chunk == '':
-                raise RuntimeError("socket connection broken")
-            chunks.append(chunk)
-            bytes_recd = bytes_recd + len(chunk)
-        return ''.join(chunks)
+#class mysocket:
+#    """ demonstration class only
+#      - coded for clarity, not efficiency"""
+#    
+#    def __init__(self, sock=None):
+#        if sock is None:
+#            self.sock = socket.socket(
+#                socket.AF_INET, socket.SOCK_STREAM)
+#        else:
+#            self.sock = sock
+#
+#    def connect(self, host, port):
+#        self.sock.connect((host, port))
+#
+#    def mysend(self, msg):
+#        totalsent = 0
+#        while totalsent < MSGLEN:
+#            sent = self.sock.send(msg[totalsent:])
+#            if sent == 0:
+#                raise RuntimeError("socket connection broken")
+#            totalsent = totalsent + sent
+#
+#    def myreceive(self):
+#        chunks = []
+#        bytes_recd = 0
+#        while bytes_recd < MSGLEN:
+#            chunk = self.sock.recv(min(MSGLEN - bytes_recd, 2048))
+#            if chunk == '':
+#                raise RuntimeError("socket connection broken")
+#            chunks.append(chunk)
+#            bytes_recd = bytes_recd + len(chunk)
+#        return ''.join(chunks)
 
 
 # Create a TCP/IP socket
@@ -63,8 +68,8 @@ sock.connect(server_address)
 
 #Video capture for Nestcam stream
 #Start the child process for rtmpdump
-command_line = "rtmpdump -v -r rtmps://stream-ire-charlie.dropcam.com/nexus/ce2d2428c4fc4aa5abd9935c323665b5 -o nest.avi"
-args = shlex.split(command_line)
+#command_line = "rtmpdump -v -r rtmps://stream-ire-charlie.dropcam.com/nexus/ce2d2428c4fc4aa5abd9935c323665b5 -o nest.avi"
+#args = shlex.split(command_line)
 #p = subprocess.Popen(args)
 #time.sleep(20)
 
@@ -77,6 +82,10 @@ threshold_nestcam = 4000
 count = 5
 
 # ~/bin/ffmpeg -i "rtmps://stream-ire-charlie.dropcam.com/nexus/ce2d2428c4fc4aa5abd9935c323665b5" -r 1 images/capImage%01d.jpg
+
+# initialize the HOG descriptor/person detector
+hog = cv2.HOGDescriptor()
+hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
 try:
     #cap=cv2.VideoCapture("nest.avi")
@@ -100,6 +109,37 @@ try:
                                                           1,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
         #ret, current_frame_binary = cv2.threshold(current_frame_gray, 127,255,cv2.THRESH_BINARY)
         
+        # The pedestrain detection section begins
+        image = frame.copy()
+        image = imutils.resize(image, width=min(400, image.shape[1]))
+        orig = image.copy()
+
+        # detect people in the image
+        (rects, weights) = hog.detectMultiScale(image, winStride=(1, 1),padding=(8, 8), scale=1.01)
+
+        # draw the original bounding boxes
+        i = 0
+        for (x, y, w, h) in rects:
+            cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            cv2.putText(orig,str(weights[i]), (25,25), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 5)
+            i += 1
+
+        # apply non-maxima suppression to the bounding boxes using a
+        # fairly large overlap threshold to try to maintain overlapping
+        # boxes that are still people
+        rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
+        pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
+
+        # draw the final bounding boxes
+        for (xA, yA, xB, yB) in pick:
+            cv2.rectangle(image, (xA, yA), (xB, yB), (0, 255, 0), 2)
+
+        #cv2.imshow("Before NMS", orig)
+        cv2.imshow("After NMS", image)
+        cv2.waitKey(2)
+
+
+
         #Subtract the current frame from the prev_frame
         if prev_frame is not None:
             bg = cv2.absdiff(current_frame_binary, prev_frame)
