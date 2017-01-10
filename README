@@ -1,0 +1,3 @@
+1) Run the ffmpeg command to start capturing from the Nest rtsp stream 
+# ~/bin/ffmpeg -i "rtmps://stream-ire-charlie.dropcam.com/nexus/ce2d2428c4fc4aa5abd9935c323665b5" -r 1 images/capImage%01d.jpg
+2) Run the bg_subtraction.py script which read the files saved in step #1 and processes them

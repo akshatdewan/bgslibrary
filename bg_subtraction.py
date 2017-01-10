@@ -73,7 +73,7 @@ intensity = -100
 #TODO Need to do something about these thresholds - make it work on all cameras
 # Need adaptive technique
 threshold_sony_laptop_camera = 1500
-threshold_nestcam = 6000
+threshold_nestcam = 4000
 count = 5
 
 # ~/bin/ffmpeg -i "rtmps://stream-ire-charlie.dropcam.com/nexus/ce2d2428c4fc4aa5abd9935c323665b5" -r 1 images/capImage%01d.jpg
