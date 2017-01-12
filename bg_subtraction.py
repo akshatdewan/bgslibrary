@@ -127,14 +127,15 @@ try:
         if prev_frame is not None:
             intensity = np.sum(bg)
             intensity_gray = np.sum(bg_1)
-        # Find the contours and the bounding rectangle for the portion of the image where motion was observed
-        contours,hierarchy = cv2.findContours(bg, 1, 2)
-        cnt = contours[0]
-        M = cv2.moments(cnt)
+
+        # Find the moments of the bg image and then estimate its centroid
+        M = cv2.moments(bg)
         try:
             cx = int(M['m10']/M['m00'])
             cy = int(M['m01']/M['m00'])
-        cv2.rectangle(bg,(cx,cy),(cx+2,cy+2),(255,0,0),thickness=5)
+            cv2.rectangle(bg,(cx,cy),(cx+2,cy+2),(255,0,0),thickness=5)
+        except: 
+            pass
                
         if intensity > 0 and intensity > threshold_nestcam: 
             message = "Intruder Detected"
@@ -144,60 +145,32 @@ try:
             # Writing the image on the disk to be shown/sent to the client application
             cv2.imwrite("/usr/share/openhab/webapps/images/suspicious_activity.png",current_frame)
 
-            ## The pedestrain detection section begins
-            #image = current_frame.copy()
-            ##image = imutils.resize(image, width=min(400, image.shape[1]))
-            #orig = image.copy()
+            # The pedestrain detection section begins
+            orig = current_frame.copy()
 
-            ## detect people in the image
-            #(rects, weights) = hog.detectMultiScale(image, winStride=(1, 1),padding=(8, 8), scale=1.1)
+            # detect people in the image
+            (rects, weights) = hog.detectMultiScale(current_frame, winStride=(1, 1),padding=(8, 8), scale=1.1)
 
-            ## draw the original bounding boxes
-            #i = 0
-            #for (x, y, w, h) in rects:
-            #    cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
-            #    cv2.putText(orig,str(weights[i]), (25,25), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 5)
-            #    i += 1
+            # apply non-maxima suppression to the bounding boxes using a
+            # fairly large overlap threshold to try to maintain overlapping
+            # boxes that are still people
+            rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
+            pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
 
-            ## apply non-maxima suppression to the bounding boxes using a
-            ## fairly large overlap threshold to try to maintain overlapping
-            ## boxes that are still people
-            #rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
-            #pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
+            # Apply the criterion that bg centroid must lie inside a box(The bounding box must surround a high motion region)
+            pick_new = []
+            for (xA, yA, xB, yB) in pick:
+                if(xA < cx and cx < xB and yA < cy and cy < yB):
+                    pick_new.append((xA, yA, xB, yB)) 
+            # draw the final bounding boxes
+            for (xA, yA, xB, yB) in pick_new:
+                cv2.rectangle(current_frame, (xA, yA), (xB, yB), (0, 255, 0), 2)
 
-            ## Apply some motion criterion (The bounding box must surround a high motion region)
-            #pick_new = []
-            #for (xA, yA, xB, yB) in pick:
-            #    size_of_bounding_box = (xB - xA)*(yB - yA)
-            #    #print "Size of Bounding box ", size_of_bounding_box
-            #    size_of_bg = bg.shape[0]*bg.shape[1]
-            #    #size_of_image = image.shape[0]*image.shape[1]
-            #    #print bg.shape
-            #    #print xA, yA, xB, yB
-            #    #print "Size of bg image ", size_of_bg
-            #    #print "Size of image ", size_of_image
-            #    intensity_bounding_box = np.sum(bg[xA:xB,yA:yB])
-            #    #print "Intensity of binary ", intensity
-            #    #print "Intensity of bounding box ", intensity_bounding_box
-            #    #print "ratio of intensities", intensity_bounding_box/float(intensity) 
-            #    if (intensity_bounding_box/float(intensity)) > ((1.5) * (size_of_bounding_box/float(size_of_bg))) :
-            #        pick_new.append((xA, yA, xB, yB)) 
-            ## draw the final bounding boxes
-            #for (xA, yA, xB, yB) in pick_new:
-            #    cv2.rectangle(image, (xA, yA), (xB, yB), (0, 255, 0), 2)
-            #    print "ratio of intensities", intensity_bounding_box/float(intensity) 
-
-            ##cv2.imshow("Before NMS", orig)
-            #cv2.imshow("After NMS", image)
-            #cv2.waitKey(2)
         # TODO update the prev_frame (the previous is the last frame processed but in priciple it should be the second last frame captured)
         #prev_frame = copy.copy(current_frame)
         #prev_frame_gray = copy.copy(current_frame_gray)
         #prev_frame_binary = copy.copy(current_frame_binary)
-        # Display the resulting frame
-        #cv2.imshow('frame',current_frame_binary)
-        #cv2.imshow('frame',current_gray_small)
-        cv2.imshow('frame',bg_1)
+        cv2.imshow('frame', current_frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         # When everything done, release the capture
