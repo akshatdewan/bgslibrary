@@ -81,67 +81,68 @@ intensity = -100
 # Need adaptive technique
 threshold_sony_laptop_camera = 1500
 threshold_nestcam = 100
-count = 5
+#count = 5
 
 # initialize the HOG descriptor/person detector
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-
+latest = 2
 try:
     #cap=cv2.VideoCapture("nest.avi")
     while(True):
         time.sleep(1)
-        count+=1
         # Read the pictures/ Read the latest (minus 1) picture in the directory
         # TODO Need to modify the mypath variable to make it generic / machine agnostic
-        mypath = "/home/smavnet/Akshat/bgslibrary2/images/"
+        mypath = "/home/smavnet/Akshat/bgslibrary2/images_cat/"
         onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
         # TODO Perhaps there is an faster way to obtain the "latest"
-        latest = max([int(f.split('capImage')[1].split('.')[0]) for f in onlyfiles])
-        print latest - 1
+        #latest = max([int(f.split('capImage')[1].split('.')[0]) for f in onlyfiles])
+        latest += 1
         #frame = cv2.imread("images/capImage"+str(count)+".jpg")
-        orig_frame = cv2.imread("images/capImage"+str(latest-1)+".jpg")
-        current_frame = cv2.resize(orig_frame, (0,0), fx=0.5, fy=0.5) 
+        #print "images/capImage"+str(latest - 1)+".jpg"
+        #print "images/capImage"+str(latest - 2)+".jpg"
         # Our operations on the frame come here
+        #orig_frame = cv2.imread(mypath+"/capImage"+str(latest-1)+".jpg")
+        orig_frame = cv2.imread(mypath+"/cat"+str(latest-1)+".jpg")
+        current_frame = cv2.resize(orig_frame, (0,0), fx=0.5, fy=0.5) 
+        #current_frame = imutils.resize(orig_frame, width=min(400,orig_frame.shape[1])) 
         current_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
         current_frame_gray = cv2.GaussianBlur(current_gray,(5,5),5)
-        current_frame_binary = cv2.adaptiveThreshold(current_frame_gray,\
-                                                          1,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
+        current_frame_binary = cv2.adaptiveThreshold(current_frame_gray,1,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
 
         # Reading the previous frame from disk like this because it is possible that processing was not real time and during proc other frames were obtained
-        orig_prev_frame = cv2.imread("images/capImage"+str(latest-2)+".jpg")
+        #orig_prev_frame = cv2.imread(mypath+"/capImage"+str(latest-2)+".jpg")
+        orig_prev_frame = cv2.imread(mypath+"/cat"+str(latest-2)+".jpg")
         prev_frame = cv2.resize(orig_prev_frame, (0,0), fx=0.5, fy=0.5) 
+        #prev_frame = imutils.resize(orig_frame, width=min(400,orig_prev_frame.shape[1])) 
         prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
         prev_frame_gray = cv2.GaussianBlur(prev_gray,(5,5),5)
-        prev_frame_binary = cv2.adaptiveThreshold(prev_frame_gray,\
-                                                          1,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
+        prev_frame_binary = cv2.adaptiveThreshold(prev_frame_gray,1,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
         #ret, current_frame_binary = cv2.threshold(current_frame_gray, 127,255,cv2.THRESH_BINARY)
 
         #Subtract the current frame from the prev_frame
         if prev_frame is not None:
-            bg = cv2.absdiff(current_frame_binary, prev_frame_binary)
-            bg_1 = cv2.absdiff(current_frame_gray, prev_frame_gray)
+            bg = cv2.absdiff(current_frame_gray, prev_frame_gray)
         else:
-            bg = copy.copy(current_frame_binary)
-            bg_1 = copy.copy(current_frame_gray)
-        if prev_frame is not None:
-            intensity = np.sum(bg)
-            intensity_gray = np.sum(bg_1)
-
+            bg = copy.copy(current_frame_gray)
+        intensity = np.sum(bg)
+        print intensity
+        
         # Find the moments of the bg image and then estimate its centroid
         M = cv2.moments(bg)
         try:
             cx = int(M['m10']/M['m00'])
             cy = int(M['m01']/M['m00'])
-            cv2.rectangle(bg,(cx,cy),(cx+2,cy+2),(255,0,0),thickness=5)
+            #cv2.rectangle(bg,(cx,cy),(cx+2,cy+2),(255,0,0),thickness=5)
         except: 
             pass
                
         if intensity > 0 and intensity > threshold_nestcam: 
-            message = "Intruder Detected"
+            message = "Motion Detected"
+            message1 = "Intruder Detected"
             print message
-            print intensity
             sock.sendall(message)
+            #sock.sendall(message1)
             # Writing the image on the disk to be shown/sent to the client application
             cv2.imwrite("/usr/share/openhab/webapps/images/suspicious_activity.png",current_frame)
 
@@ -149,7 +150,7 @@ try:
             orig = current_frame.copy()
 
             # detect people in the image
-            (rects, weights) = hog.detectMultiScale(current_frame, winStride=(1, 1),padding=(8, 8), scale=1.1)
+            (rects, weights) = hog.detectMultiScale(current_frame, winStride=(4, 4),padding=(8, 8), scale=1.5)
 
             # apply non-maxima suppression to the bounding boxes using a
             # fairly large overlap threshold to try to maintain overlapping
@@ -160,22 +161,27 @@ try:
             # Apply the criterion that bg centroid must lie inside a box(The bounding box must surround a high motion region)
             pick_new = []
             for (xA, yA, xB, yB) in pick:
-                if(xA < cx and cx < xB and yA < cy and cy < yB):
-                    pick_new.append((xA, yA, xB, yB)) 
+                if(xA < cx and cx < xB and yA < cy and cy < yB ):
+                    pick_new.append((xA, yA, xB, yB))
+            if len(pick_new) > 0:
+                cv2.imwrite("/usr/share/openhab/webapps/images/suspicious_person.png",current_frame)
+                print message1
+                sock.sendall(message1)
+
             # draw the final bounding boxes
-            for (xA, yA, xB, yB) in pick_new:
-                cv2.rectangle(current_frame, (xA, yA), (xB, yB), (0, 255, 0), 2)
+            #for (xA, yA, xB, yB) in pick_new:
+            #    cv2.rectangle(current_frame, (xA, yA), (xB, yB), (0, 255, 0), 2)
 
         # TODO update the prev_frame (the previous is the last frame processed but in priciple it should be the second last frame captured)
         #prev_frame = copy.copy(current_frame)
         #prev_frame_gray = copy.copy(current_frame_gray)
         #prev_frame_binary = copy.copy(current_frame_binary)
-        cv2.imshow('frame', current_frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        #cv2.imshow('frame', current_frame)
+        #if cv2.waitKey(1) & 0xFF == ord('q'):
+        #    break
         # When everything done, release the capture
     #cap.release()
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
 
 except(KeyboardInterrupt, SystemExit):
     #p.terminate()
