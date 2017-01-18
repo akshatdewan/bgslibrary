@@ -1,0 +1,28 @@
+sitemap demo label="LCM"
+{
+	
+	Frame label="Date" {
+		Text item=Date
+	}
+	Frame label="Nest"{
+		Text item=NestHome_name
+	}
+	//Frame label="Notification"{
+	//	Text item=Intrusion_Report
+	//}
+	Frame label=Alarms{
+		Text label="Alarm" icon="siren" {
+			Frame label="Intruder Detection"{
+				Switch item=IntruderAlarm label="Unauthorized Person" mappings=[OFF="Disable"]
+				Image url="http://localhost:8080/images/suspicious_person.png" label="openHAB" refresh=1000 visibility=[IntruderAlarm==ON]
+				Image url="http://localhost:8080/images/splash-ipad-h.png" refresh=1000 visibility=[IntruderAlarm==OFF] 
+			}
+		}
+	}
+}
+
+//Frame label="Motion Detection"{
+//				Switch item=MotionAlarm label="Motion Detected" mappings=[OFF="Disable"]
+//				Image url="http://localhost:8080/images/suspicious_activity.png" label="openHAB" refresh=1000 visibility=[MotionAlarm==ON]
+//				Image url="http://localhost:8080/images/splash-ipad-h.png" refresh=1000 visibility=[MotionAlarm==OFF] 
+//			}

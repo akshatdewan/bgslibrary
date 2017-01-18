@@ -87,23 +87,23 @@ threshold_nestcam = 100
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 latest = 2
+suspicious_cntr = 0
 try:
     #cap=cv2.VideoCapture("nest.avi")
     while(True):
-        time.sleep(1)
+        time.sleep(0.1)
         # Read the pictures/ Read the latest (minus 1) picture in the directory
         # TODO Need to modify the mypath variable to make it generic / machine agnostic
-        mypath = "/home/smavnet/Akshat/bgslibrary2/images_cat/"
+        mypath = "/home/smavnet/Akshat/bgslibrary2/images/"
         onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
         # TODO Perhaps there is an faster way to obtain the "latest"
-        #latest = max([int(f.split('capImage')[1].split('.')[0]) for f in onlyfiles])
+        latest = max([int(f.split('capImage')[1].split('.')[0]) for f in onlyfiles])
         latest += 1
         #frame = cv2.imread("images/capImage"+str(count)+".jpg")
         #print "images/capImage"+str(latest - 1)+".jpg"
         #print "images/capImage"+str(latest - 2)+".jpg"
         # Our operations on the frame come here
-        #orig_frame = cv2.imread(mypath+"/capImage"+str(latest-1)+".jpg")
-        orig_frame = cv2.imread(mypath+"/cat"+str(latest-1)+".jpg")
+        orig_frame = cv2.imread(mypath+"/capImage"+str(latest-1)+".jpg")
         current_frame = cv2.resize(orig_frame, (0,0), fx=0.5, fy=0.5) 
         #current_frame = imutils.resize(orig_frame, width=min(400,orig_frame.shape[1])) 
         current_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
@@ -111,8 +111,7 @@ try:
         current_frame_binary = cv2.adaptiveThreshold(current_frame_gray,1,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
 
         # Reading the previous frame from disk like this because it is possible that processing was not real time and during proc other frames were obtained
-        #orig_prev_frame = cv2.imread(mypath+"/capImage"+str(latest-2)+".jpg")
-        orig_prev_frame = cv2.imread(mypath+"/cat"+str(latest-2)+".jpg")
+        orig_prev_frame = cv2.imread(mypath+"/capImage"+str(latest-2)+".jpg")
         prev_frame = cv2.resize(orig_prev_frame, (0,0), fx=0.5, fy=0.5) 
         #prev_frame = imutils.resize(orig_frame, width=min(400,orig_prev_frame.shape[1])) 
         prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
@@ -126,7 +125,7 @@ try:
         else:
             bg = copy.copy(current_frame_gray)
         intensity = np.sum(bg)
-        print intensity
+        #print intensity
         
         # Find the moments of the bg image and then estimate its centroid
         M = cv2.moments(bg)
@@ -140,7 +139,7 @@ try:
         if intensity > 0 and intensity > threshold_nestcam: 
             message = "Motion Detected"
             message1 = "Intruder Detected"
-            print message
+            #print message
             sock.sendall(message)
             #sock.sendall(message1)
             # Writing the image on the disk to be shown/sent to the client application
@@ -150,7 +149,7 @@ try:
             orig = current_frame.copy()
 
             # detect people in the image
-            (rects, weights) = hog.detectMultiScale(current_frame, winStride=(4, 4),padding=(8, 8), scale=1.5)
+            (rects, weights) = hog.detectMultiScale(current_frame, winStride=(4, 4),padding=(8, 8), scale=1.1)
 
             # apply non-maxima suppression to the bounding boxes using a
             # fairly large overlap threshold to try to maintain overlapping
@@ -161,12 +160,26 @@ try:
             # Apply the criterion that bg centroid must lie inside a box(The bounding box must surround a high motion region)
             pick_new = []
             for (xA, yA, xB, yB) in pick:
-                if(xA < cx and cx < xB and yA < cy and cy < yB ):
+                xA_new = xA + 0.25*(xB - xA)
+                yA_new = yA + 0.25*(yB - yA)
+                xB_new = xB - 0.25*(xB - xA)
+                yB_new = yB - 0.25*(yB - yA)
+                if(xA_new < cx and cx < xB_new and yA_new < cy and cy < yB_new ):
                     pick_new.append((xA, yA, xB, yB))
             if len(pick_new) > 0:
-                cv2.imwrite("/usr/share/openhab/webapps/images/suspicious_person.png",current_frame)
-                print message1
-                sock.sendall(message1)
+                print suspicious_cntr
+                if (suspicious_cntr == 0):
+                    suspected_frame = latest
+                if (latest - suspected_frame < 50):
+                    suspicious_cntr += 1
+                else: 
+                    suspicious_cntr = 0
+                if (suspicious_cntr == 1):
+                    suspicious_cntr = 0
+                    cv2.imwrite("/usr/share/openhab/webapps/images/suspicious_person.png",current_frame)
+                    print message1
+                    print (mypath+"/capImage"+str(latest-1)+".jpg") 
+                    sock.sendall(message1)
 
             # draw the final bounding boxes
             #for (xA, yA, xB, yB) in pick_new:

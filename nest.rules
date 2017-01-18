@@ -1,0 +1,81 @@
+import org.openhab.core.library.types.*
+import org.openhab.core.persistence.*
+import org.openhab.model.script.actions.*
+
+
+/**
+ * This rule is to implement the state machine for motion detection notifications
+ */
+rule "Motion-state-machine"
+	when
+		Item MotionDetection received update
+	then
+		if(MotionDetection.state.toString.contains("Motion Detected")) {
+			postUpdate(MotionAlarm,ON)
+			MotionDetection.postUpdate("")
+			//logInfo("FILE", "MotionDetection is set to ---" + MotionDetection.state.toString + "--")
+		}
+		else{
+			//postUpdate(Intrusion_Report,"Home sweet home!")
+			//logInfo("FILE","Home sweet home!")
+		}    
+end
+
+/**
+ * This rule is to implement the state machine for intruder notifications
+ */
+rule "Intruder-state-machine"
+	when
+		Item IntruderDetection received update
+	then
+	    if( IntruderDetection.state.toString.contains("Intruder Detected")) {
+			postUpdate(IntruderAlarm,ON)
+			IntruderDetection.postUpdate("")
+			//logInfo("FILE", "IntruderDetection is set to ---" + IntruderDetection.state.toString + "--")
+		}
+		else{
+			//postUpdate(Intrusion_Report,"Home sweet home!")
+			//logInfo("FILE","Home sweet home!")
+		}    
+end
+
+/**
+ * This rule is to send intruder notifications to the Telegram bot.
+ */
+rule "Send-telegram-intruder"
+when
+    Item IntruderAlarm changed
+then
+ 	if(IntruderAlarm.state==ON){
+ 		var String app_url = AppURL.state.toString
+ 		var String message = "Person Detected! You can find the live stream here: " + app_url
+ 		sendTelegramPhoto("bot1", "http://localhost:8080/images/suspicious_person.png",
+        message)
+        //var String url = WebURL.state.toString 
+        //sendTelegram("bot1", "Unauthorized person Detected! Please make sure that everything is fine and disable the alarm by going to the OpenHAB application.")
+    	//sendTelegram("bot1", "You can find the live stream here - https://video.nest.com/live/aMtwQwvQjd")
+    	//sendTelegram("bot1", "You can find the live stream here %s",url)
+    	//sendTelegram("bot1", "You can find the live stream here %s",app_url)
+
+	}
+end
+
+/**
+ * This rule is to send motion detection notifications to the Telegram bot.
+ */
+//rule "Send-telegram-motion"
+//when
+//    Item MotionAlarm changed
+//then
+// 	if(MotionAlarm.state==ON){
+// 		sendTelegramPhoto("bot1", "http://localhost:8080/images/suspicious_activity.png",
+//       "sent from openHAB")
+//        //var String url = WebURL.state.toString 
+//        var String app_url = AppURL.state.toString 
+//    	sendTelegram("bot1", "Unauthorized Activity Detected! Please make sure that everything is fine and disable the alarm by going to the OpenHAB application.")
+//    	//sendTelegram("bot1", "You can find the live stream here - https://video.nest.com/live/aMtwQwvQjd")
+//    	//sendTelegram("bot1", "You can find the live stream here %s",url)
+//    	sendTelegram("bot1", "You can find the live stream here %s",app_url)
+//	}
+//end
+

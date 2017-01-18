@@ -1,0 +1,16 @@
+/* NTP binding demo item */
+DateTime		Date			"Date [%1$tA, %1$td.%1$tm.%1$tY]"	<calendar>	{ ntp="Europe/Berlin:de_DE" }
+Number Weather_Temperature 		"Outside Temperature [%.	1f °C]"	<temperature> (Weather_Chart) { http="<[http://weather.yahooapis.com/forecastrss?w=638242&u=c:60000:XSLT(yahoo_weather_temperature.xsl)]" }
+
+String NestHome_name "Name [%s]"     {nest="<[structures(EPFL LCM).name]"}
+//String NestCamWebUrl "CamWebUrl [%s]"{nest="<[cameras(Office).web_url]"}
+//String NestCamLastEventImageUrl "CamLastEventImageUrl [%s]" {nest="<[cameras(Office).last_event.image_url]"}
+String WebURL "Web URL [%s]" {nest="<[cameras(Office).web_url]"}
+String AppURL "NestApp URL [%s]" {nest="<[cameras(Office).app_url]"}
+String MotionDetection "MotionDetection [%s]" {tcp="<[:localhost:31415:]"}
+String IntruderDetection "IntruderDetection [%s]" {tcp="<[:localhost:31415:]"}
+//String Intrusion_Report "Intrusion" 
+String ImageURL "http://localhost:8080/images/splash-ipad-h.png"
+Switch MotionAlarm	"Disable Alarm"
+Switch IntruderAlarm "Disable Alarm"
+//'REGEX(.*)'
