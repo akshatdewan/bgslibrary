@@ -7,6 +7,12 @@ sitemap demo label="LCM"
 	Frame label="Nest"{
 		Text item=NestHome_name
 	}
+	Frame label="Intruder Light"{
+		Switch item=LightSource
+	}
+	Frame label="Intruder Light Control"{
+		Switch item=LightSourceControl
+	} 
 	//Frame label="Notification"{
 	//	Text item=Intrusion_Report
 	//}

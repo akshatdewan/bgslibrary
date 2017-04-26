@@ -9,8 +9,12 @@ String WebURL "Web URL [%s]" {nest="<[cameras(Office).web_url]"}
 String AppURL "NestApp URL [%s]" {nest="<[cameras(Office).app_url]"}
 String MotionDetection "MotionDetection [%s]" {tcp="<[:localhost:31415:]"}
 String IntruderDetection "IntruderDetection [%s]" {tcp="<[:localhost:31415:]"}
+String PedestrianDetection "PedestrianDetection [%s]" {tcp="<[:iccluster029.iccluster.epfl.ch:31415:]"}
 //String Intrusion_Report "Intrusion" 
 String ImageURL "http://localhost:8080/images/splash-ipad-h.png"
 Switch MotionAlarm	"Disable Alarm"
 Switch IntruderAlarm "Disable Alarm"
+
 //'REGEX(.*)'
+Switch LightSource "Intruder Light" {zwave="4:command=switch_binary"}
+Switch LightSourceControl "Intruder Light Control"  

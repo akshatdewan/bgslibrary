@@ -1,7 +1,10 @@
 import org.openhab.core.library.types.*
 import org.openhab.core.persistence.*
 import org.openhab.model.script.actions.*
+import org.openhab.*
+import org.joda.time.*
 
+var Timer timer = null
 
 /**
  * This rule is to implement the state machine for motion detection notifications
@@ -17,9 +20,41 @@ rule "Motion-state-machine"
 		}
 		else{
 			//postUpdate(Intrusion_Report,"Home sweet home!")
-			//logInfo("FILE","Home sweet home!")
+			logInfo("FILE","Home sweet home!")
 		}    
 end
+
+/**
+ * This rule is to control the lights
+ */
+rule "pedestrian-state-machine"
+	when
+		Item PedestrianDetection received update
+	then
+		if(PedestrianDetection.state.toString.contains("Pedestrian Detected")) {
+			postUpdate(LightSource,ON)
+			sendCommand(LightSource,ON)
+			PedestrianDetection.postUpdate("")
+			if(timer == null) {
+				logInfo("FILE", "Setting to ON and creating timer")
+				timer = createTimer(now.plusSeconds(10), [|
+                logInfo("FILE", "Timer expired and setting to OFF")
+                postUpdate(LightSource,OFF)
+                sendCommand(LightSource,OFF)
+                timer = null
+             ])
+            } else {
+                logInfo("FILE", "Timer rescheduled")
+                timer.reschedule(now.plusSeconds(10))
+            }
+			//Thread::sleep(3000)
+			//postUpdate(LightSource,OFF)
+			//sendCommand(LightSource,OFF)
+		}
+		else{
+		}    
+end
+
 
 /**
  * This rule is to implement the state machine for intruder notifications
